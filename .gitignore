@@ -1,0 +1,94 @@
+# ============================================================================
+# Anni Music Monorepo - .gitignore
+# ============================================================================
+
+# --- Environment & Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.PFX
+
+# --- Android Signing & Keystores (CRITICAL: Never commit release keys) ---
+*.jks
+*.keystore
+app/android/key.properties
+app/android/keystore/
+infra/scripts/*.jks
+infra/scripts/*.base64.txt
+
+# --- Node.js / Backend ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+backend/dist/
+backend/build/
+backend/coverage/
+backend/.tsbuildinfo
+backend/uploads/
+backend/storage/
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# --- Flutter / Dart / Mobile App ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+app/build/
+app/coverage/
+app/android/.gradle/
+app/android/captures/
+app/android/local.properties
+app/android/app/debug/
+app/android/app/profile/
+app/android/app/release/
+app/ios/Flutter/App.framework
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/ephemeral/
+app/ios/Pods/
+app/ios/.symlinks/
+app/macos/Flutter/ephemeral/
+app/linux/flutter/ephemeral/
+app/windows/flutter/ephemeral/
+
+# --- Generated Dart Files (if transient) ---
+*.freezed.dart.bak
+
+# --- Docker & Local Infrastructure Volumes ---
+infra/data/
+infra/volumes/
+postgres-data/
+redis-data/
+minio-data/
+
+# --- IDEs & Editors ---
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+
+# --- OS Generated ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini

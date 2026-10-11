@@ -1,0 +1,150 @@
+name: Anni Music Android Release (APK & AAB)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Version tag for manual release (e.g., v1.0.0)"
+        required: false
+        default: "v1.0.0"
+      api_base_url:
+        description: "Public HTTPS Backend API URL"
+        required: false
+        default: "https://anni-music-api.onrender.com/api/v1"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Signed Release APK & Publish GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Resolve Version Tag & API Base URL
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG_NAME="${{ github.event.inputs.release_tag || 'v1.0.0' }}"
+            API_URL="${{ github.event.inputs.api_base_url || secrets.API_BASE_URL || 'https://anni-music-api.onrender.com/api/v1' }}"
+          else
+            TAG_NAME="${GITHUB_REF_NAME}"
+            API_URL="${{ secrets.API_BASE_URL || vars.API_BASE_URL || 'https://anni-music-api.onrender.com/api/v1' }}"
+          fi
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "api_url=${API_URL}" >> "$GITHUB_OUTPUT"
+          echo "Building Anni Music ${TAG_NAME} with API_BASE_URL=${API_URL}"
+
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Flutter (Latest Stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Configure Android Release Keystore (Secrets or Automated Fallback)
+        working-directory: app/android
+        env:
+          ANNI_KEYSTORE_BASE64: ${{ secrets.ANNI_KEYSTORE_BASE64 }}
+          ANNI_KEYSTORE_PASSWORD: ${{ secrets.ANNI_KEYSTORE_PASSWORD }}
+          ANNI_KEY_PASSWORD: ${{ secrets.ANNI_KEY_PASSWORD }}
+          ANNI_KEY_ALIAS: ${{ secrets.ANNI_KEY_ALIAS }}
+        run: |
+          mkdir -p keystore
+          if [[ -n "${ANNI_KEYSTORE_BASE64}" && -n "${ANNI_KEYSTORE_PASSWORD}" ]]; then
+            echo "Decoding configured ANNI_KEYSTORE_BASE64 secret..."
+            echo "${ANNI_KEYSTORE_BASE64}" | base64 --decode > keystore/anni-release-key.jks
+            KEY_ALIAS="${ANNI_KEY_ALIAS:-anni_release_key}"
+            STORE_PASS="${ANNI_KEYSTORE_PASSWORD}"
+            KEY_PASS="${ANNI_KEY_PASSWORD:-${ANNI_KEYSTORE_PASSWORD}}"
+          else
+            echo "No keystore secrets detected; generating deterministic self-contained release keystore so fork releases succeed..."
+            KEY_ALIAS="anni_release_key"
+            STORE_PASS="AnniMusicReleaseKey2026"
+            KEY_PASS="AnniMusicReleaseKey2026"
+            keytool -genkeypair -v \
+              -keystore keystore/anni-release-key.jks \
+              -storetype PKCS12 \
+              -alias "${KEY_ALIAS}" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "${STORE_PASS}" \
+              -keypass "${KEY_PASS}" \
+              -dname "CN=Anni Music, OU=Mobile Engineering, O=Anni Labs, L=San Francisco, ST=California, C=US"
+          fi
+
+          cat > key.properties <<EOF
+          storePassword=${STORE_PASS}
+          keyPassword=${KEY_PASS}
+          keyAlias=${KEY_ALIAS}
+          storeFile=../keystore/anni-release-key.jks
+          EOF
+
+      - name: Install Flutter Dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Build Signed Release APK
+        working-directory: app
+        run: >-
+          flutter build apk --release
+          --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+
+      - name: Build Signed Release AppBundle (AAB for Google Play)
+        working-directory: app
+        run: >-
+          flutter build appbundle --release
+          --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+
+      - name: Prepare Release Binaries & Checksums
+        working-directory: app
+        run: |
+          TAG="${{ steps.meta.outputs.tag_name }}"
+          cp build/app/outputs/flutter-apk/app-release.apk "Anni-Music-${TAG}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "Anni-Music-${TAG}.aab"
+          sha256sum "Anni-Music-${TAG}.apk" "Anni-Music-${TAG}.aab" > "Anni-Music-${TAG}-SHA256SUMS.txt"
+          ls -lh "Anni-Music-${TAG}.apk" "Anni-Music-${TAG}.aab" "Anni-Music-${TAG}-SHA256SUMS.txt"
+
+      - name: Upload Release Artifacts to Workflow Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anni-Music-${{ steps.meta.outputs.tag_name }}-Release-Binaries
+          path: |
+            app/Anni-Music-${{ steps.meta.outputs.tag_name }}.apk
+            app/Anni-Music-${{ steps.meta.outputs.tag_name }}.aab
+            app/Anni-Music-${{ steps.meta.outputs.tag_name }}-SHA256SUMS.txt
+          retention-days: 90
+
+      - name: Publish GitHub Release with Downloadable APK & AAB
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: "Anni Music ${{ steps.meta.outputs.tag_name }} — Your music. Your world."
+          generate_release_notes: true
+          body: |
+            ## 🎵 Anni Music ${{ steps.meta.outputs.tag_name }}
+            **Your music. Your world.**
+
+            ### 📲 Direct Android Installation
+            1. Download **`Anni-Music-${{ steps.meta.outputs.tag_name }}.apk`** from the **Assets** section below on your Android phone.
+            2. Open the downloaded `.apk` file and allow **"Install unknown apps"** if prompted.
+            3. Launch **Anni Music** and enjoy legal indie & Creative Commons streaming, local offline playback, synchronized lyrics, and cloud playlist sync!
+
+            ### 🔗 Pre-Configured Cloud Backend
+            - **API Endpoint**: `${{ steps.meta.outputs.api_url }}`
+          files: |
+            app/Anni-Music-${{ steps.meta.outputs.tag_name }}.apk
+            app/Anni-Music-${{ steps.meta.outputs.tag_name }}.aab
+            app/Anni-Music-${{ steps.meta.outputs.tag_name }}-SHA256SUMS.txt

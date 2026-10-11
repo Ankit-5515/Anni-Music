@@ -1,0 +1,50 @@
+# ============================================================================
+# Fly.io Deployment Configuration — Anni Music API
+# Deploy from repo root: fly launch --config infra/fly.toml
+# ============================================================================
+
+app = "anni-music-api"
+primary_region = "iad"
+kill_signal = "SIGINT"
+kill_timeout = "5s"
+
+[build]
+  dockerfile = "infra/Dockerfile"
+
+[deploy]
+  release_command = "npx prisma migrate deploy"
+  strategy = "rolling"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "4000"
+  HOST = "0.0.0.0"
+  AUDIUS_APP_NAME = "AnniMusic"
+  JWT_ACCESS_EXPIRES_IN = "15m"
+  JWT_REFRESH_EXPIRES_IN = "30d"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 250
+    soft_limit = 200
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/v1/health"
+    protocol = "http"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

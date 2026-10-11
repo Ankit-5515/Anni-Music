@@ -1,0 +1,106 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
+if (flutterVersionCode == null) {
+    flutterVersionCode = "1"
+}
+
+def flutterVersionName = localProperties.getProperty("flutter.versionName")
+if (flutterVersionName == null) {
+    flutterVersionName = "1.0.0"
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def envKeystorePath = System.getenv("ANNI_KEYSTORE_PATH")
+def envKeystorePassword = System.getenv("ANNI_KEYSTORE_PASSWORD")
+def envKeyAlias = System.getenv("ANNI_KEY_ALIAS")
+def envKeyPassword = System.getenv("ANNI_KEY_PASSWORD")
+
+def hasKeystoreConfig = keystorePropertiesFile.exists() || (envKeystorePath != null && !envKeystorePath.isEmpty())
+
+android {
+    namespace "com.anni.music"
+    compileSdkVersion 34
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+    }
+
+    defaultConfig {
+        applicationId "com.anni.music"
+        minSdkVersion 24
+        targetSdkVersion 34
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true
+    }
+
+    signingConfigs {
+        release {
+            def resolvedStoreFile = keystoreProperties["storeFile"] ?: envKeystorePath
+            def resolvedStorePassword = keystoreProperties["storePassword"] ?: envKeystorePassword
+            def resolvedKeyAlias = keystoreProperties["keyAlias"] ?: envKeyAlias ?: "anni_music_key"
+            def resolvedKeyPassword = keystoreProperties["keyPassword"] ?: envKeyPassword
+
+            if (resolvedStoreFile != null && file(resolvedStoreFile).exists()) {
+                storeFile file(resolvedStoreFile)
+                storePassword resolvedStorePassword
+                keyAlias resolvedKeyAlias
+                keyPassword resolvedKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            def releaseConfig = signingConfigs.release
+            if (hasKeystoreConfig && releaseConfig.storeFile != null && releaseConfig.storeFile.exists()) {
+                signingConfig releaseConfig
+            } else {
+                signingConfig signingConfigs.debug
+            }
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source "../.."
+}
+
+dependencies {
+    implementation "androidx.multidex:multidex:2.0.1"
+    implementation "androidx.media:media:1.7.0"
+}

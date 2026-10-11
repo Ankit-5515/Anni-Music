@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String?
+  googleId      String?        @unique
+  displayName   String
+  avatarUrl     String?
+  bio           String?
+  analyticsOptIn Boolean       @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  refreshTokens RefreshToken[]
+  playlists     Playlist[]
+  favorites     Favorite[]
+  playHistory   PlayHistory[]
+  settings      UserSettings?
+  analytics     AnalyticsEvent[]
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Track {
+  id              String          @id
+  source           String          // "jamendo" | "internet_archive" | "youtube" | "local"
+  externalId      String
+  title           String
+  artist          String
+  album           String
+  genre           String          @default("Electronic")
+  durationSeconds Int
+  artworkUrl      String
+  streamUrl       String?         // Null for YouTube (uses official IFrame player)
+  downloadUrl     String?         // Legal CC direct/signed download URL
+  qualityBadge    String          @default("320kbps") // "FLAC" | "320kbps" | "256kbps" | "YT-HD"
+  license         String          @default("CC BY-NC-SA 4.0")
+  releaseYear     Int?
+  waveform        Float[]
+  dominantColor   String          @default("#8B5CF6")
+  createdAt       DateTime        @default(now())
+
+  playlistTracks  PlaylistTrack[]
+  favorites       Favorite[]
+  playHistory     PlayHistory[]
+
+  @@unique([source, externalId])
+  @@index([title, artist])
+  @@index([genre])
+}
+
+model Playlist {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  coverUrl    String?
+  isPublic    Boolean         @default(true)
+  shareSlug   String          @unique
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tracks      PlaylistTrack[]
+
+  @@index([userId])
+  @@index([shareSlug])
+}
+
+model PlaylistTrack {
+  id         String   @id @default(uuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  trackId    String
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  position   Int
+  addedAt    DateTime @default(now())
+
+  @@unique([playlistId, trackId])
+  @@index([playlistId, position])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId   String
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, trackId])
+  @@index([userId])
+}
+
+model PlayHistory {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId          String
+  track            Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  playedAt         DateTime @default(now())
+  listenedSeconds  Int      @default(0)
+  completed        Boolean  @default(false)
+  completionRate   Float    @default(1.0)
+
+  @@index([userId, playedAt(sort: Desc)])
+  @@index([trackId])
+}
+
+model UserSettings {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  themeMode             String   @default("dark") // "dark" | "amoled" | "light"
+  streamingQuality      String   @default("FLAC") // "FLAC" | "320kbps" | "192kbps"
+  downloadQuality       String   @default("FLAC")
+  crossfadeSeconds      Int      @default(4)
+  gaplessPlayback       Boolean  @default(true)
+  replayGain            Boolean  @default(true)
+  equalizerEnabled      Boolean  @default(true)
+  equalizerPreset       String   @default("Signature Cinema")
+  equalizerBandsJson    String   @default("[2.5, 4.0, 2.0, 0.0, -1.0, 0.5, 2.0, 3.5, 4.0, 3.0]")
+  bassBoostStrength     Int      @default(450)
+  virtualizerStrength   Int      @default(300)
+  wifiOnlyDownloads     Boolean  @default(false)
+  updatedAt             DateTime @updatedAt
+}
+
+model LyricsCache {
+  id          String   @id @default(uuid())
+  trackKey    String   @unique // normalized "artist::title"
+  title       String
+  artist      String
+  syncedLrc   String
+  plainLyrics String
+  source      String   @default("lrclib")
+  updatedAt   DateTime @updatedAt
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  eventType  String
+  properties String   @default("{}")
+  appVersion String   @default("1.0.0")
+  platform   String   @default("android")
+  createdAt  DateTime @default(now())
+
+  @@index([eventType, createdAt])
+}

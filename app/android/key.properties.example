@@ -1,0 +1,8 @@
+# Anni Music Release Keystore Configuration
+# Copy this file to android/key.properties (never commit key.properties or *.jks)
+# Alternatively, supply ANNI_KEYSTORE_PATH, ANNI_KEYSTORE_PASSWORD, ANNI_KEY_ALIAS, and ANNI_KEY_PASSWORD in CI environment variables.
+
+storePassword=CHANGE_ME_STORE_PASSWORD
+keyPassword=CHANGE_ME_KEY_PASSWORD
+keyAlias=anni_music_key
+storeFile=../keystore/anni-release-key.jks

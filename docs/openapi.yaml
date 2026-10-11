@@ -1,0 +1,757 @@
+openapi: 3.1.0
+info:
+  title: Anni Music Cloud API
+  version: 1.0.0
+  summary: REST & Streaming API for Anni Music ("Your music. Your world.")
+  description: |
+    Production OpenAPI 3.1 specification for the **Anni Music** backend powered by Fastify, Prisma, PostgreSQL, Redis, and legal independent music providers (Audius, Jamendo, Internet Archive, Curated CC, and User Cloud Uploads).
+  contact:
+    name: Anni Music Engineering
+    url: https://github.com/anni-music/anni-music
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://anni-music-api.onrender.com/api/v1
+    description: Production Cloud Server (Render HTTPS)
+  - url: http://localhost:4000/api/v1
+    description: Local Development & Docker Compose Server
+
+tags:
+  - name: Health
+    description: Service liveness, readiness, and dependency health checks
+  - name: Auth
+    description: JWT registration, login, token rotation, and user profile management
+  - name: Search & Catalog
+    description: Unified legal multi-provider music search, trending charts, and stream resolution
+  - name: Playlists
+    description: Cloud playlist CRUD, track ordering, and public sharing
+  - name: Sync
+    description: Offline-first bi-directional delta synchronization
+  - name: Recommendations
+    description: Personalized daily mixes, mood/genre stations, and similar tracks
+  - name: Lyrics
+    description: Time-synced LRC and plain lyrics lookup
+  - name: Downloads & Uploads
+    description: Offline download manifest authorization and personal audio locker uploads
+  - name: Analytics
+    description: Listening history logging and user playback insights
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Pass the JWT `accessToken` in the `Authorization: Bearer <token>` header.
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service, version, uptimeSeconds, timestamp, checks]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        service:
+          type: string
+          example: anni-music-api
+        version:
+          type: string
+          example: 1.0.0
+        uptimeSeconds:
+          type: number
+          example: 8421.4
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              example: connected
+            redis:
+              type: string
+              example: connected
+
+    User:
+      type: object
+      required: [id, email, username, displayName, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+          example: shiva_music
+        displayName:
+          type: string
+          example: Shiva
+        avatarUrl:
+          type: [string, "null"]
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthTokensResponse:
+      type: object
+      required: [user, accessToken, refreshToken, expiresIn]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          example: 900
+
+    Track:
+      type: object
+      required:
+        - id
+        - title
+        - artist
+        - album
+        - durationSeconds
+        - artworkUrl
+        - streamUrl
+        - sourceProvider
+      properties:
+        id:
+          type: string
+          example: audius:D7KyD
+        title:
+          type: string
+          example: Midnight Resonance
+        artist:
+          type: string
+          example: Aether Waves
+        album:
+          type: string
+          example: Neon Horizons
+        durationSeconds:
+          type: integer
+          example: 214
+        artworkUrl:
+          type: string
+          format: uri
+        streamUrl:
+          type: string
+          format: uri
+        sourceProvider:
+          type: string
+          enum: [AUDIUS, JAMENDO, ARCHIVE, CURATED, USER_UPLOAD, LOCAL]
+        genre:
+          type: string
+          example: Synthwave
+        mood:
+          type: string
+          example: Chill
+        licenseUrl:
+          type: string
+          format: uri
+          example: https://creativecommons.org/licenses/by-nc-sa/4.0/
+        hasSyncedLyrics:
+          type: boolean
+          example: true
+
+    Playlist:
+      type: object
+      required: [id, name, isPublic, tracks, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Late Night Coding
+        description:
+          type: [string, "null"]
+        coverUrl:
+          type: [string, "null"]
+        isPublic:
+          type: boolean
+        version:
+          type: integer
+          example: 3
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Track"
+        updatedAt:
+          type: string
+          format: date-time
+
+    LyricLine:
+      type: object
+      required: [timestampMs, text]
+      properties:
+        timestampMs:
+          type: integer
+          example: 14520
+        text:
+          type: string
+          example: Floating through the obsidian sky
+
+    LyricsResponse:
+      type: object
+      required: [trackId, synced, lines]
+      properties:
+        trackId:
+          type: string
+        synced:
+          type: boolean
+        plainLyrics:
+          type: string
+        lrcRaw:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LyricLine"
+
+    SyncPayload:
+      type: object
+      required: [lastSyncedAt]
+      properties:
+        lastSyncedAt:
+          type: [string, "null"]
+          format: date-time
+        favorites:
+          type: array
+          items:
+            type: object
+            required: [trackId, isDeleted, updatedAt]
+            properties:
+              trackId:
+                type: string
+              isDeleted:
+                type: boolean
+              updatedAt:
+                type: string
+                format: date-time
+              trackMetadata:
+                $ref: "#/components/schemas/Track"
+        playlists:
+          type: array
+          items:
+            type: object
+            required: [id, name, trackIds, isDeleted, updatedAt]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              description:
+                type: string
+              isPublic:
+                type: boolean
+              trackIds:
+                type: array
+                items:
+                  type: string
+              isDeleted:
+                type: boolean
+              updatedAt:
+                type: string
+                format: date-time
+        history:
+          type: array
+          items:
+            type: object
+            required: [trackId, playedDurationSeconds, playedAt]
+            properties:
+              trackId:
+                type: string
+              playedDurationSeconds:
+                type: integer
+              completed:
+                type: boolean
+              playedAt:
+                type: string
+                format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [error, message, statusCode]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Service & database health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new Anni Music account
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username, password, displayName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                  minLength: 3
+                password:
+                  type: string
+                  minLength: 8
+                displayName:
+                  type: string
+      responses:
+        "201":
+          description: Account created and tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokensResponse"
+        "409":
+          description: Email or username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email/username and password
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokensResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate refresh token and issue new access token
+      operationId: refreshTokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: New token pair generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokensResponse"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user profile
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /search:
+    get:
+      tags: [Search & Catalog]
+      summary: Search legal tracks across Audius, Jamendo, Curated CC, and User Catalog
+      operationId: searchMusic
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query (song title, artist, album, mood, genre)
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: mood
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Unified deduplicated search results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [query, total, tracks]
+                properties:
+                  query:
+                    type: string
+                  total:
+                    type: integer
+                  tracks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Track"
+
+  /search/trending:
+    get:
+      tags: [Search & Catalog]
+      summary: Fetch trending & featured legal tracks
+      parameters:
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Trending tracks list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tracks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Track"
+
+  /playlists:
+    get:
+      tags: [Playlists]
+      summary: List user playlists and featured public playlists
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Array of playlists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  playlists:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Playlist"
+    post:
+      tags: [Playlists]
+      summary: Create a new cloud playlist
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                isPublic:
+                  type: boolean
+                  default: false
+                trackIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Created playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+
+  /playlists/{playlistId}:
+    get:
+      tags: [Playlists]
+      summary: Get playlist details and ordered tracks
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Playlist details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+    put:
+      tags: [Playlists]
+      summary: Update playlist metadata or reorder tracks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                isPublic:
+                  type: boolean
+                trackIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+    delete:
+      tags: [Playlists]
+      summary: Soft-delete a playlist
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /sync:
+    post:
+      tags: [Sync]
+      summary: Bi-directional offline-first library delta synchronization
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncPayload"
+      responses:
+        "200":
+          description: Synchronized server state delta
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [serverTimestamp, favorites, playlists]
+                properties:
+                  serverTimestamp:
+                    type: string
+                    format: date-time
+                  favorites:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Track"
+                  playlists:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Playlist"
+
+  /recommendations:
+    get:
+      tags: [Recommendations]
+      summary: Personalized track recommendations, Daily Mixes, and mood stations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: mood
+          in: query
+          schema:
+            type: string
+            enum: [Chill, Energetic, Focus, Workout, Melancholy, LateNight]
+        - name: seedTrackId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Curated recommendation shelves
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dailyMix:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Track"
+                  similarTracks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Track"
+                  moodStation:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Track"
+
+  /lyrics/{trackId}:
+    get:
+      tags: [Lyrics]
+      summary: Retrieve time-synced LRC lyrics or plain lyrics for a track
+      parameters:
+        - name: trackId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: title
+          in: query
+          schema:
+            type: string
+        - name: artist
+          in: query
+          schema:
+            type: string
+        - name: duration
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Synchronized LRC and plain lyrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LyricsResponse"
+
+  /downloads/{trackId}/manifest:
+    get:
+      tags: [Downloads & Uploads]
+      summary: Authorize and retrieve direct stream/download manifest for offline caching
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Download manifest with stream URL, license, and checksum metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [trackId, downloadUrl, licenseUrl, expiresAt]
+                properties:
+                  trackId:
+                    type: string
+                  downloadUrl:
+                    type: string
+                    format: uri
+                  licenseUrl:
+                    type: string
+                    format: uri
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+  /analytics/play:
+    post:
+      tags: [Analytics]
+      summary: Record a track playback event and update user listening stats
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trackId, playedDurationSeconds]
+              properties:
+                trackId:
+                  type: string
+                playedDurationSeconds:
+                  type: integer
+                completed:
+                  type: boolean
+      responses:
+        "201":
+          description: Playback event recorded

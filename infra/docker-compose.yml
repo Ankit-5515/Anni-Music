@@ -1,0 +1,156 @@
+version: "3.9"
+
+name: anni-music
+
+services:
+  # --------------------------------------------------------------------------
+  # PostgreSQL 16 — Primary Relational Database
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: anni-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-anni}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-anni_secret_password}
+      POSTGRES_DB: ${POSTGRES_DB:-anni_music}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-anni} -d ${POSTGRES_DB:-anni_music}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - anni-network
+
+  # --------------------------------------------------------------------------
+  # Redis 7 — Caching, Rate-Limiting & Real-Time Session Store
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: anni-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - anni-network
+
+  # --------------------------------------------------------------------------
+  # MinIO — S3-Compatible Object Storage for User Uploads & Playlist Covers
+  # --------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: anni-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-anni_minio_admin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-anni_minio_secret_key}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - anni-network
+
+  # --------------------------------------------------------------------------
+  # MinIO Bucket Provisioner — Creates `anni-media` bucket on startup
+  # --------------------------------------------------------------------------
+  minio-init:
+    image: minio/mc:latest
+    container_name: anni-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${S3_ACCESS_KEY:-anni_minio_admin} $${S3_SECRET_KEY:-anni_minio_secret_key};
+      mc mb --ignore-existing local/$${S3_BUCKET:-anni-media};
+      mc anonymous set download local/$${S3_BUCKET:-anni-media}/public;
+      exit 0;
+      "
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-anni_minio_admin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-anni_minio_secret_key}
+      S3_BUCKET: ${S3_BUCKET:-anni-media}
+    networks:
+      - anni-network
+
+  # --------------------------------------------------------------------------
+  # Anni Music Backend API (Fastify + Prisma + Legal Music Providers)
+  # --------------------------------------------------------------------------
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: anni-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-anni}:${POSTGRES_PASSWORD:-anni_secret_password}@postgres:5432/${POSTGRES_DB:-anni_music}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-anni_prod_access_secret_change_me_in_production_64_chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-anni_prod_refresh_secret_change_me_in_production_64_chars}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      JAMENDO_CLIENT_ID: ${JAMENDO_CLIENT_ID:-}
+      AUDIUS_APP_NAME: ${AUDIUS_APP_NAME:-AnniMusic}
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/anni-media}
+      S3_BUCKET: ${S3_BUCKET:-anni-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-anni_minio_admin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-anni_minio_secret_key}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    volumes:
+      - backend_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4000/api/v1/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - anni-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  anni-network:
+    driver: bridge

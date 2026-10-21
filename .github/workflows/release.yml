@@ -96,6 +96,24 @@ jobs:
         working-directory: app
         run: flutter pub get
 
+      - name: Patch Flutter Plugins for Android Gradle Plugin 8
+        run: |
+          PUB_DIR="${PUB_CACHE:-$HOME/.pub-cache}"
+          echo "Scanning pub cache at $PUB_DIR for plugins missing android namespace..."
+          find "$PUB_DIR" -type f -path "*/android/build.gradle" 2>/dev/null | while read -r f; do
+            if ! grep -q "namespace" "$f"; then
+              pkg_dir=$(dirname $(dirname "$f"))
+              pkg_name=$(basename "$pkg_dir" | sed 's/-[0-9].*//')
+              if [[ "$pkg_name" == *"on_audio_query"* ]]; then
+                ns="com.lucasjosino.on_audio_query"
+              else
+                ns="com.plugin.${pkg_name//-/_}"
+              fi
+              echo "Injecting namespace '$ns' into $f"
+              sed -i "/android {/a \    namespace \"$ns\"" "$f"
+            fi
+          done
+
       - name: Build Signed Release APK
         working-directory: app
         run: |

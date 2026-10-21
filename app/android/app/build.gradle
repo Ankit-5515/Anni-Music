@@ -37,7 +37,7 @@ def hasKeystoreConfig = keystorePropertiesFile.exists() || (envKeystorePath != n
 
 android {
     namespace "com.anni.music"
-    compileSdkVersion 34
+    compileSdkVersion 35
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -56,7 +56,7 @@ android {
     defaultConfig {
         applicationId "com.anni.music"
         minSdkVersion 24
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true

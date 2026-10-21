@@ -111,7 +111,7 @@ jobs:
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build apk --release \
-            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_apk.log
           cp build/app/outputs/flutter-apk/app-release.apk "Anni-Music-${TAG}.apk"
           ls -lh "Anni-Music-${TAG}.apk"
 
@@ -120,7 +120,7 @@ jobs:
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build appbundle --release \
-            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_aab.log
           cp build/app/outputs/bundle/release/app-release.aab "Anni-Music-${TAG}.aab"
           ls -lh "Anni-Music-${TAG}.aab"
 
@@ -131,6 +131,16 @@ jobs:
           sha256sum "Anni-Music-${TAG}.apk" "Anni-Music-${TAG}.aab" > "Anni-Music-${TAG}-SHA256SUMS.txt"
           cat "Anni-Music-${TAG}-SHA256SUMS.txt"
           ls -lh Anni-Music-${TAG}*
+
+      - name: Upload Diagnostic Build Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build-failure-logs
+          path: |
+            app/release_apk.log
+            app/release_aab.log
+          retention-days: 7
 
       - name: Upload Release Artifacts to Workflow Run
         uses: actions/upload-artifact@v4

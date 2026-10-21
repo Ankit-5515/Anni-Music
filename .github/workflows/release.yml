@@ -109,6 +109,7 @@ jobs:
       - name: Build Signed Release APK
         working-directory: app
         run: |
+          TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build apk --release \
             --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee build_apk.log || {
               echo "### Release APK Build Output" >> $GITHUB_STEP_SUMMARY
@@ -117,10 +118,19 @@ jobs:
               echo '```' >> $GITHUB_STEP_SUMMARY
               exit 1
             }
+          
+          APK_FILE=$(find build -type f -name "*release*.apk" | head -n 1)
+          if [[ -z "$APK_FILE" ]]; then
+            APK_FILE=$(find build -type f -name "*.apk" | head -n 1)
+          fi
+          echo "Preserving Release APK from $APK_FILE to Anni-Music-${TAG}.apk"
+          cp "$APK_FILE" "Anni-Music-${TAG}.apk"
+          ls -lh "Anni-Music-${TAG}.apk"
 
       - name: Build Signed Release AppBundle (AAB for Google Play)
         working-directory: app
         run: |
+          TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build appbundle --release \
             --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee build_aab.log || {
               echo "### Release AAB Build Output" >> $GITHUB_STEP_SUMMARY
@@ -129,35 +139,30 @@ jobs:
               echo '```' >> $GITHUB_STEP_SUMMARY
               exit 1
             }
-
-      - name: Prepare Release Binaries & Checksums
-        working-directory: app
-        run: |
-          TAG="${{ steps.meta.outputs.tag_name }}"
-          echo "Scanning build directory for APK and AAB files:"
-          find build -type f \( -name "*.apk" -o -name "*.aab" \) || true
-          
-          APK_FILE=$(find build -type f -name "*release*.apk" | head -n 1)
-          if [[ -z "$APK_FILE" ]]; then
-            APK_FILE=$(find build -type f -name "*.apk" | head -n 1)
-          fi
           
           AAB_FILE=$(find build -type f -name "*release*.aab" | head -n 1)
           if [[ -z "$AAB_FILE" ]]; then
             AAB_FILE=$(find build -type f -name "*.aab" | head -n 1)
           fi
-          
-          echo "Selected APK: $APK_FILE"
-          echo "Selected AAB: $AAB_FILE"
-          
-          cp "$APK_FILE" "Anni-Music-${TAG}.apk"
-          if [[ -n "$AAB_FILE" ]]; then
+          if [[ -n "$AAB_FILE" && -f "$AAB_FILE" ]]; then
+            echo "Preserving Release AAB from $AAB_FILE to Anni-Music-${TAG}.aab"
             cp "$AAB_FILE" "Anni-Music-${TAG}.aab"
-            sha256sum "Anni-Music-${TAG}.apk" "Anni-Music-${TAG}.aab" > "Anni-Music-${TAG}-SHA256SUMS.txt"
-          else
-            sha256sum "Anni-Music-${TAG}.apk" > "Anni-Music-${TAG}-SHA256SUMS.txt"
+            ls -lh "Anni-Music-${TAG}.aab"
           fi
-          
+
+      - name: Prepare Release Binaries & Checksums
+        working-directory: app
+        run: |
+          TAG="${{ steps.meta.outputs.tag_name }}"
+          FILES_TO_HASH=()
+          if [[ -f "Anni-Music-${TAG}.apk" ]]; then
+            FILES_TO_HASH+=("Anni-Music-${TAG}.apk")
+          fi
+          if [[ -f "Anni-Music-${TAG}.aab" ]]; then
+            FILES_TO_HASH+=("Anni-Music-${TAG}.aab")
+          fi
+          sha256sum "${FILES_TO_HASH[@]}" > "Anni-Music-${TAG}-SHA256SUMS.txt"
+          cat "Anni-Music-${TAG}-SHA256SUMS.txt"
           ls -lh Anni-Music-${TAG}*
 
       - name: Upload Release Artifacts to Workflow Run

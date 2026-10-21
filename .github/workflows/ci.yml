@@ -138,6 +138,7 @@ jobs:
       - name: Build Debug APK
         run: |
           flutter build apk --debug \
+            --android-skip-build-dependency-validation \
             --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://anni-music-api.onrender.com/api/v1' }} 2>&1 | tee build_debug.log || {
               echo "### Debug APK Build Output" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY

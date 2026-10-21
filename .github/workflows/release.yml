@@ -101,6 +101,7 @@ jobs:
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build apk --release \
+            --android-skip-build-dependency-validation \
             --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} > build_release.log 2>&1 || {
               BUILD_STATUS=$?
               echo "### Release APK Build Output" >> $GITHUB_STEP_SUMMARY

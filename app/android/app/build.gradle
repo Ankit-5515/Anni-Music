@@ -69,8 +69,17 @@ android {
             def resolvedKeyAlias = keystoreProperties["keyAlias"] ?: envKeyAlias ?: "anni_music_key"
             def resolvedKeyPassword = keystoreProperties["keyPassword"] ?: envKeyPassword
 
-            if (resolvedStoreFile != null && file(resolvedStoreFile).exists()) {
-                storeFile file(resolvedStoreFile)
+            def storeFileObj = null
+            if (resolvedStoreFile != null) {
+                if (file(resolvedStoreFile).exists()) {
+                    storeFileObj = file(resolvedStoreFile)
+                } else if (rootProject.file(resolvedStoreFile).exists()) {
+                    storeFileObj = rootProject.file(resolvedStoreFile)
+                }
+            }
+
+            if (storeFileObj != null) {
+                storeFile storeFileObj
                 storePassword resolvedStorePassword
                 keyAlias resolvedKeyAlias
                 keyPassword resolvedKeyPassword

@@ -53,6 +53,16 @@ jobs:
           channel: "stable"
           cache: true
 
+      - name: Patch Flutter IconData for legacy icon packages
+        run: |
+          FLUTTER_DIR=$(dirname $(dirname $(which flutter)))
+          echo "Flutter installed at: $FLUTTER_DIR"
+          ICON_DATA_FILE="$FLUTTER_DIR/packages/flutter/lib/src/widgets/icon_data.dart"
+          if [[ -f "$ICON_DATA_FILE" ]]; then
+            sed -i 's/final class IconData/class IconData/g; s/base class IconData/class IconData/g' "$ICON_DATA_FILE"
+            echo "Patched IconData in $ICON_DATA_FILE"
+          fi
+
       - name: Configure Android Release Keystore (Secrets or Automated Fallback)
         working-directory: app/android
         env:
@@ -98,15 +108,27 @@ jobs:
 
       - name: Build Signed Release APK
         working-directory: app
-        run: >-
-          flutter build apk --release
-          --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+        run: |
+          flutter build apk --release \
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee build_apk.log || {
+              echo "### Release APK Build Output" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              tail -n 120 build_apk.log >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              exit 1
+            }
 
       - name: Build Signed Release AppBundle (AAB for Google Play)
         working-directory: app
-        run: >-
-          flutter build appbundle --release
-          --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+        run: |
+          flutter build appbundle --release \
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee build_aab.log || {
+              echo "### Release AAB Build Output" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              tail -n 120 build_aab.log >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              exit 1
+            }
 
       - name: Prepare Release Binaries & Checksums
         working-directory: app

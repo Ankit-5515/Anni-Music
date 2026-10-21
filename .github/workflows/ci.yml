@@ -109,19 +109,42 @@ jobs:
           channel: "stable"
           cache: true
 
+      - name: Patch Flutter IconData for legacy icon packages
+        run: |
+          FLUTTER_DIR=$(dirname $(dirname $(which flutter)))
+          echo "Flutter installed at: $FLUTTER_DIR"
+          ICON_DATA_FILE="$FLUTTER_DIR/packages/flutter/lib/src/widgets/icon_data.dart"
+          if [[ -f "$ICON_DATA_FILE" ]]; then
+            sed -i 's/final class IconData/class IconData/g; s/base class IconData/class IconData/g' "$ICON_DATA_FILE"
+            echo "Patched IconData in $ICON_DATA_FILE"
+          fi
+
       - name: Install Flutter Dependencies
         run: flutter pub get
 
       - name: Analyze Dart Codebase
-        run: flutter analyze --no-fatal-infos
+        run: |
+          flutter analyze --no-fatal-infos 2>&1 | tee analyze.log || {
+            echo "### Flutter Analyze Output" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 analyze.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Run Flutter Widget & Unit Tests
         run: flutter test
 
       - name: Build Debug APK
-        run: >-
-          flutter build apk --debug
-          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://anni-music-api.onrender.com/api/v1' }}
+        run: |
+          flutter build apk --debug \
+            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://anni-music-api.onrender.com/api/v1' }} 2>&1 | tee build_debug.log || {
+              echo "### Debug APK Build Output" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              tail -n 120 build_debug.log >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              exit 1
+            }
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4

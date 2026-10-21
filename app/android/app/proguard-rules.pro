@@ -32,3 +32,7 @@
 -keepclassmembernames class kotlinx.** {
     volatile <fields>;
 }
+
+# Ignore unresolved references in transitive packages during R8 minification
+-dontwarn **
+

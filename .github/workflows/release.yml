@@ -111,7 +111,16 @@ jobs:
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build apk --release \
-            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_apk.log
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_apk.log || true
+          
+          echo "### Build APK Log" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 80 release_apk.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "Discovered APK files:"
+          find build -name "*.apk" || true
+
           cp build/app/outputs/flutter-apk/app-release.apk "Anni-Music-${TAG}.apk"
           ls -lh "Anni-Music-${TAG}.apk"
 
@@ -120,7 +129,16 @@ jobs:
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build appbundle --release \
-            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_aab.log
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_aab.log || true
+          
+          echo "### Build AAB Log" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 80 release_aab.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "Discovered AAB files:"
+          find build -name "*.aab" || true
+
           cp build/app/outputs/bundle/release/app-release.aab "Anni-Music-${TAG}.aab"
           ls -lh "Anni-Music-${TAG}.aab"
 

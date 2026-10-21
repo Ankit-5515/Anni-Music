@@ -65,9 +65,9 @@ android {
     signingConfigs {
         release {
             def resolvedStoreFile = keystoreProperties["storeFile"] ?: envKeystorePath
-            def resolvedStorePassword = keystoreProperties["storePassword"] ?: envKeystorePassword ?: "AnniMusicReleaseKey2026"
+            def resolvedStorePassword = keystoreProperties["storePassword"] ?: envKeystorePassword ?: "l3WH3RKBwAIqd8PAHPyLXFz4"
             def resolvedKeyAlias = keystoreProperties["keyAlias"] ?: envKeyAlias ?: "anni_release_key"
-            def resolvedKeyPassword = keystoreProperties["keyPassword"] ?: envKeyPassword ?: "AnniMusicReleaseKey2026"
+            def resolvedKeyPassword = keystoreProperties["keyPassword"] ?: envKeyPassword ?: "l3WH3RKBwAIqd8PAHPyLXFz4"
 
             def storeFileObj = null
             if (resolvedStoreFile != null && !resolvedStoreFile.trim().isEmpty()) {

@@ -73,7 +73,7 @@ jobs:
         run: |
           mkdir -p keystore
           KEY_ALIAS="${ANNI_KEY_ALIAS:-anni_release_key}"
-          STORE_PASS="${ANNI_KEYSTORE_PASSWORD:-AnniMusicReleaseKey2026}"
+          STORE_PASS="${ANNI_KEYSTORE_PASSWORD:-l3WH3RKBwAIqd8PAHPyLXFz4}"
           KEY_PASS="${ANNI_KEY_PASSWORD:-${STORE_PASS}}"
 
           if [[ -n "${ANNI_KEYSTORE_BASE64}" ]]; then
@@ -88,7 +88,7 @@ jobs:
             echo "Warning: keystore/anni-release-key.jks not found; Gradle will fall back to debug signing."
           fi
 
-          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=keystore/anni-release-key.jks\n" \
+          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=../keystore/anni-release-key.jks\n" \
             "${STORE_PASS}" "${KEY_PASS}" "${KEY_ALIAS}" > key.properties
           cat key.properties
 
@@ -102,12 +102,21 @@ jobs:
           TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build apk --release \
             --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} > build_release.log 2>&1 || {
+              BUILD_STATUS=$?
               echo "### Release APK Build Output" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
               tail -n 120 build_release.log >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
               cat build_release.log
-              exit 1
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git -C .. checkout --orphan release-build-log 2>/dev/null || true
+              git -C .. rm -rf . >/dev/null 2>&1 || true
+              cp build_release.log ../error.log
+              git -C .. add error.log
+              git -C .. commit -m "build failure log" || true
+              git -C .. push origin release-build-log --force || true
+              exit $BUILD_STATUS
             }
           cat build_release.log
           

@@ -153,7 +153,7 @@ class AnniTheme {
         ),
         iconTheme: const IconThemeData(color: textPrimary),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: cardColor,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -187,10 +187,10 @@ class AnniTheme {
         trackHeight: 4.0,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
       ),
-      bottomSheetTheme: BottomSheetThemeData(
+      bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: surface1,
         modalBackgroundColor: surface1,
-        shape: const RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
@@ -284,7 +284,7 @@ class AnniTheme {
         ),
         iconTheme: const IconThemeData(color: lightTextPrimary),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: lightSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(

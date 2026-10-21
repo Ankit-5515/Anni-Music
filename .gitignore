@@ -56,6 +56,9 @@ app/ios/Flutter/Generated.xcconfig
 app/ios/Flutter/ephemeral/
 app/ios/Pods/
 app/ios/.symlinks/
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/Runner/GeneratedPluginRegistrant.*
+app/android/app/src/main/java/io/flutter/plugins/
 app/macos/Flutter/ephemeral/
 app/linux/flutter/ephemeral/
 app/windows/flutter/ephemeral/

@@ -535,7 +535,7 @@ class AnniTrackTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color activeColor = AnniTheme.accentMagenta;
+    const Color activeColor = AnniTheme.accentMagenta;
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),

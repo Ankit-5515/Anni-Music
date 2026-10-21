@@ -763,7 +763,6 @@ class AnniAudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHan
     Map<String, dynamic>? options,
   ]) async {
     switch (parentMediaId) {
-      case AudioService.browsableRootId:
       case mediaRootId:
         return const <MediaItem>[
           MediaItem(
@@ -800,11 +799,11 @@ class AnniAudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHan
       case nodeFavorites:
         return _localDatabase.getFavoriteTracks().map(_trackToMediaItem).toList();
       case nodePlaylists:
-        return _localDatabase.getPlaylists().map((Playlist pl) {
+        return _localDatabase.getPlaylists().map<MediaItem>((Playlist pl) {
           return MediaItem(
             id: 'playlist:${pl.id}',
             title: pl.name,
-            subtitle: '${pl.trackCount} songs',
+            displaySubtitle: '${pl.trackCount} songs',
             playable: false,
           );
         }).toList();

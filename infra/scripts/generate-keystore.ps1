@@ -46,8 +46,13 @@ if (-not $KeytoolCmd) {
     if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME "bin\keytool.exe"))) {
         $KeytoolExe = Join-Path $env:JAVA_HOME "bin\keytool.exe"
     } else {
-        Write-Error "Could not find 'keytool' on PATH or in JAVA_HOME. Install JDK 17+ or Android Studio first."
-        exit 1
+        $InstalledJdk = Get-ChildItem "C:\Program Files\Java\jdk*\bin\keytool.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($InstalledJdk) {
+            $KeytoolExe = $InstalledJdk.FullName
+        } else {
+            Write-Error "Could not find 'keytool' on PATH or in JAVA_HOME. Install JDK 17+ or Android Studio first."
+            exit 1
+        }
     }
 } else {
     $KeytoolExe = $KeytoolCmd.Source

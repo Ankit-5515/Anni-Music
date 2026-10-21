@@ -60,7 +60,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       subtitle: 'Acoustic & Dream Pop',
       colorA: Color(0xFF6366F1),
       colorB: Color(0xFFA855F7),
-      icon: LucideIcons.guitar,
+      icon: LucideIcons.music,
     ),
     _GenreTileData(
       name: 'Rock',

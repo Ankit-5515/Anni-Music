@@ -241,9 +241,11 @@ class _SplashOnboardingScreenState
               final _OnboardingSlideData slide = _slides[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
                     // Visual Showcase Card
                     Container(
                       width: 168,
@@ -331,7 +333,8 @@ class _SplashOnboardingScreenState
                     ),
                   ],
                 ),
-              );
+              ),
+            );
             },
           ),
         ),

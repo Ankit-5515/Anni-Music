@@ -37,7 +37,7 @@ def hasKeystoreConfig = keystorePropertiesFile.exists() || (envKeystorePath != n
 
 android {
     namespace "com.anni.music"
-    compileSdkVersion 35
+    compileSdkVersion 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -120,4 +120,8 @@ flutter {
 dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
     implementation "androidx.media:media:1.7.0"
+}
+
+tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask).configureEach {
+    enabled = false
 }

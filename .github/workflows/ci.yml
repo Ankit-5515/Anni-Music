@@ -140,6 +140,13 @@ jobs:
             fi
           done
 
+          find "$PUB_DIR" -type f -name "build.gradle" -path "*on_audio_query_android*" 2>/dev/null | while read -r f; do
+            sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$f"
+            sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' "$f"
+            sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" "$f"
+            echo "Synced Java/Kotlin target 17 in $f"
+          done
+
       - name: Analyze Dart Codebase
         run: |
           flutter analyze --no-fatal-infos 2>&1 | tee analyze.log || {

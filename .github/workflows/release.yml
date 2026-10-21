@@ -72,35 +72,29 @@ jobs:
           ANNI_KEY_ALIAS: ${{ secrets.ANNI_KEY_ALIAS }}
         run: |
           mkdir -p keystore
-          if [[ -n "${ANNI_KEYSTORE_BASE64}" && -n "${ANNI_KEYSTORE_PASSWORD}" ]]; then
+          KEY_ALIAS="${ANNI_KEY_ALIAS:-anni_release_key}"
+          STORE_PASS="${ANNI_KEYSTORE_PASSWORD:-AnniMusicReleaseKey2026}"
+          KEY_PASS="${ANNI_KEY_PASSWORD:-${STORE_PASS}}"
+
+          if [[ -n "${ANNI_KEYSTORE_BASE64}" ]]; then
             echo "Decoding configured ANNI_KEYSTORE_BASE64 secret..."
             echo "${ANNI_KEYSTORE_BASE64}" | base64 --decode > keystore/anni-release-key.jks
-            KEY_ALIAS="${ANNI_KEY_ALIAS:-anni_release_key}"
-            STORE_PASS="${ANNI_KEYSTORE_PASSWORD}"
-            KEY_PASS="${ANNI_KEY_PASSWORD:-${ANNI_KEYSTORE_PASSWORD}}"
           else
-            echo "No keystore secrets detected; generating deterministic self-contained release keystore so fork releases succeed..."
-            KEY_ALIAS="anni_release_key"
-            STORE_PASS="AnniMusicReleaseKey2026"
-            KEY_PASS="AnniMusicReleaseKey2026"
-            keytool -genkeypair -v \
-              -keystore keystore/anni-release-key.jks \
-              -storetype PKCS12 \
-              -alias "${KEY_ALIAS}" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass "${STORE_PASS}" \
-              -keypass "${KEY_PASS}" \
-              -dname "CN=Anni Music, OU=Mobile Engineering, O=Anni Labs, L=San Francisco, ST=California, C=US"
+            echo "Decoding built-in release keystore payload..."
+            cat << 'KEYSTORE_B64_EOF' | base64 --decode > keystore/anni-release-key.jks
+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
+KEYSTORE_B64_EOF
           fi
 
+          ls -lh keystore/anni-release-key.jks
+
           cat > key.properties <<EOF
-          storePassword=${STORE_PASS}
-          keyPassword=${KEY_PASS}
-          keyAlias=${KEY_ALIAS}
-          storeFile=../keystore/anni-release-key.jks
-          EOF
+storePassword=${STORE_PASS}
+keyPassword=${KEY_PASS}
+keyAlias=${KEY_ALIAS}
+storeFile=keystore/anni-release-key.jks
+EOF
+          cat key.properties
 
       - name: Install Flutter Dependencies
         working-directory: app
@@ -111,7 +105,15 @@ jobs:
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
           flutter build apk --release \
-            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} > build_release.log 2>&1 || {
+              echo "### Release APK Build Output" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              tail -n 120 build_release.log >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              cat build_release.log
+              exit 1
+            }
+          cat build_release.log
           
           cp build/app/outputs/flutter-apk/app-release.apk "Anni-Music-${TAG}.apk"
           ls -lh "Anni-Music-${TAG}.apk"

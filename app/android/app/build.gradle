@@ -65,16 +65,24 @@ android {
     signingConfigs {
         release {
             def resolvedStoreFile = keystoreProperties["storeFile"] ?: envKeystorePath
-            def resolvedStorePassword = keystoreProperties["storePassword"] ?: envKeystorePassword
-            def resolvedKeyAlias = keystoreProperties["keyAlias"] ?: envKeyAlias ?: "anni_music_key"
-            def resolvedKeyPassword = keystoreProperties["keyPassword"] ?: envKeyPassword
+            def resolvedStorePassword = keystoreProperties["storePassword"] ?: envKeystorePassword ?: "AnniMusicReleaseKey2026"
+            def resolvedKeyAlias = keystoreProperties["keyAlias"] ?: envKeyAlias ?: "anni_release_key"
+            def resolvedKeyPassword = keystoreProperties["keyPassword"] ?: envKeyPassword ?: "AnniMusicReleaseKey2026"
 
             def storeFileObj = null
-            if (resolvedStoreFile != null) {
-                if (file(resolvedStoreFile).exists()) {
-                    storeFileObj = file(resolvedStoreFile).canonicalFile
-                } else if (rootProject.file(resolvedStoreFile).exists()) {
-                    storeFileObj = rootProject.file(resolvedStoreFile).canonicalFile
+            if (resolvedStoreFile != null && !resolvedStoreFile.trim().isEmpty()) {
+                def f1 = file(resolvedStoreFile.trim())
+                def f2 = rootProject.file(resolvedStoreFile.trim())
+                if (f1.exists()) {
+                    storeFileObj = f1.canonicalFile
+                } else if (f2.exists()) {
+                    storeFileObj = f2.canonicalFile
+                }
+            }
+            if (storeFileObj == null) {
+                def defaultKeystore = rootProject.file("keystore/anni-release-key.jks")
+                if (defaultKeystore.exists()) {
+                    storeFileObj = defaultKeystore.canonicalFile
                 }
             }
 
@@ -90,7 +98,7 @@ android {
     buildTypes {
         release {
             def releaseConfig = signingConfigs.release
-            if (hasKeystoreConfig && releaseConfig.storeFile != null && releaseConfig.storeFile.exists()) {
+            if (releaseConfig.storeFile != null && releaseConfig.storeFile.exists()) {
                 signingConfig releaseConfig
             } else {
                 signingConfig signingConfigs.debug

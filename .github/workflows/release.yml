@@ -106,41 +106,21 @@ jobs:
         working-directory: app
         run: flutter pub get
 
-      - name: Build Signed Release APK
-        working-directory: app
-        run: |
-          TAG="${{ steps.meta.outputs.tag_name }}"
-          flutter build apk --release \
-            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_apk.log || true
-          
-          echo "### Build APK Log" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -n 80 release_apk.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-          echo "Discovered APK files:"
-          find build -name "*.apk" || true
-
-          cp build/app/outputs/flutter-apk/app-release.apk "Anni-Music-${TAG}.apk"
-          ls -lh "Anni-Music-${TAG}.apk"
-
       - name: Build Signed Release AppBundle (AAB for Google Play)
         working-directory: app
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
-          flutter build appbundle --release \
-            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }} 2>&1 | tee release_aab.log || true
-          
-          echo "### Build AAB Log" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -n 80 release_aab.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-          echo "Discovered AAB files:"
-          find build -name "*.aab" || true
-
+          flutter build appbundle --release --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
           cp build/app/outputs/bundle/release/app-release.aab "Anni-Music-${TAG}.aab"
           ls -lh "Anni-Music-${TAG}.aab"
+
+      - name: Build Signed Release APK
+        working-directory: app
+        run: |
+          TAG="${{ steps.meta.outputs.tag_name }}"
+          flutter build apk --release --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+          cp build/app/outputs/flutter-apk/app-release.apk "Anni-Music-${TAG}.apk"
+          ls -lh "Anni-Music-${TAG}.apk"
 
       - name: Prepare Release Binaries & Checksums
         working-directory: app
@@ -149,16 +129,6 @@ jobs:
           sha256sum "Anni-Music-${TAG}.apk" "Anni-Music-${TAG}.aab" > "Anni-Music-${TAG}-SHA256SUMS.txt"
           cat "Anni-Music-${TAG}-SHA256SUMS.txt"
           ls -lh Anni-Music-${TAG}*
-
-      - name: Upload Diagnostic Build Logs on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-build-failure-logs
-          path: |
-            app/release_apk.log
-            app/release_aab.log
-          retention-days: 7
 
       - name: Upload Release Artifacts to Workflow Run
         uses: actions/upload-artifact@v4

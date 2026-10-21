@@ -72,13 +72,13 @@ android {
             def storeFileObj = null
             if (resolvedStoreFile != null) {
                 if (file(resolvedStoreFile).exists()) {
-                    storeFileObj = file(resolvedStoreFile)
+                    storeFileObj = file(resolvedStoreFile).canonicalFile
                 } else if (rootProject.file(resolvedStoreFile).exists()) {
-                    storeFileObj = rootProject.file(resolvedStoreFile)
+                    storeFileObj = rootProject.file(resolvedStoreFile).canonicalFile
                 }
             }
 
-            if (storeFileObj != null) {
+            if (storeFileObj != null && storeFileObj.exists()) {
                 storeFile storeFileObj
                 storePassword resolvedStorePassword
                 keyAlias resolvedKeyAlias

@@ -106,19 +106,13 @@ jobs:
         working-directory: app
         run: flutter pub get
 
-      - name: Build Signed Release AppBundle (AAB for Google Play)
-        working-directory: app
-        run: |
-          TAG="${{ steps.meta.outputs.tag_name }}"
-          flutter build appbundle --release --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
-          cp build/app/outputs/bundle/release/app-release.aab "Anni-Music-${TAG}.aab"
-          ls -lh "Anni-Music-${TAG}.aab"
-
       - name: Build Signed Release APK
         working-directory: app
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
-          flutter build apk --release --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+          flutter build apk --release \
+            --dart-define=API_BASE_URL=${{ steps.meta.outputs.api_url }}
+          
           cp build/app/outputs/flutter-apk/app-release.apk "Anni-Music-${TAG}.apk"
           ls -lh "Anni-Music-${TAG}.apk"
 
@@ -126,7 +120,7 @@ jobs:
         working-directory: app
         run: |
           TAG="${{ steps.meta.outputs.tag_name }}"
-          sha256sum "Anni-Music-${TAG}.apk" "Anni-Music-${TAG}.aab" > "Anni-Music-${TAG}-SHA256SUMS.txt"
+          sha256sum "Anni-Music-${TAG}.apk" > "Anni-Music-${TAG}-SHA256SUMS.txt"
           cat "Anni-Music-${TAG}-SHA256SUMS.txt"
           ls -lh Anni-Music-${TAG}*
 
@@ -136,11 +130,10 @@ jobs:
           name: Anni-Music-${{ steps.meta.outputs.tag_name }}-Release-Binaries
           path: |
             app/Anni-Music-${{ steps.meta.outputs.tag_name }}.apk
-            app/Anni-Music-${{ steps.meta.outputs.tag_name }}.aab
             app/Anni-Music-${{ steps.meta.outputs.tag_name }}-SHA256SUMS.txt
           retention-days: 90
 
-      - name: Publish GitHub Release with Downloadable APK & AAB
+      - name: Publish GitHub Release with Downloadable APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag_name }}
@@ -159,5 +152,4 @@ jobs:
             - **API Endpoint**: `${{ steps.meta.outputs.api_url }}`
           files: |
             app/Anni-Music-${{ steps.meta.outputs.tag_name }}.apk
-            app/Anni-Music-${{ steps.meta.outputs.tag_name }}.aab
             app/Anni-Music-${{ steps.meta.outputs.tag_name }}-SHA256SUMS.txt

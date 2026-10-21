@@ -13,22 +13,6 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-subprojects { project ->
-    project.afterEvaluate {
-        if (project.hasProperty("android")) {
-            project.android {
-                if (namespace == null) {
-                    if (project.name.contains("on_audio_query")) {
-                        namespace = "com.lucasjosino.on_audio_query"
-                    } else {
-                        namespace = "com.anni.plugins.${project.name.replaceAll('[^a-zA-Z0-9_]', '_')}"
-                    }
-                }
-            }
-        }
-    }
-}
-
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

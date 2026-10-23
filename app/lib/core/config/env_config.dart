@@ -4,7 +4,7 @@ class EnvConfig {
 
   static const String appName = 'Anni Music';
   static const String tagline = 'Your music. Your world.';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.1.0';
   static const String packageName = 'com.anni.music';
   static const String nativeAudioChannel = 'com.anni.music/native_audio';
 

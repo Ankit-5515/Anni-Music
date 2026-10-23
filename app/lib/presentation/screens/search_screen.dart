@@ -21,6 +21,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   static const List<_GenreTileData> _genres = <_GenreTileData>[
     _GenreTileData(
+      name: 'Bollywood',
+      subtitle: 'Romance & Acoustic Melodies',
+      colorA: Color(0xFFF43F5E),
+      colorB: Color(0xFFFB923C),
+      icon: LucideIcons.heart,
+    ),
+    _GenreTileData(
+      name: 'Punjabi',
+      subtitle: 'Heavy 808s & Urban Beats',
+      colorA: Color(0xFFEF4444),
+      colorB: Color(0xFFF59E0B),
+      icon: LucideIcons.flame,
+    ),
+    _GenreTileData(
+      name: 'South Hits',
+      subtitle: 'Tamil, Telugu & Malayalam',
+      colorA: Color(0xFF06B6D4),
+      colorB: Color(0xFF3B82F6),
+      icon: LucideIcons.sparkles,
+    ),
+    _GenreTileData(
       name: 'Synthwave',
       subtitle: 'Retro-Futuristic Analog',
       colorA: Color(0xFF8B5CF6),
@@ -104,8 +125,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Hybrid Search',
-                      style: GoogleFonts.outfit(
+                      'Search',
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.6,
@@ -114,7 +135,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Search across local device files, Jamendo CC, Internet Archive & YouTube',
+                      'Songs, artists, albums & genres',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: AnniTheme.textSecondary,

@@ -31,7 +31,7 @@ describe('Anni Music REST API — Unit & Integration Suite', () => {
       const body = res.json();
       expect(body.status).toBe('ok');
       expect(body.service).toBe('Anni Music API');
-      expect(body.dependencies.providers).toEqual(['jamendo', 'internet_archive', 'youtube']);
+      expect(body.dependencies.providers).toEqual(['jamendo', 'internet_archive', 'youtube', 'jiosaavn']);
     });
 
     it('serves OpenAPI specification from /docs/json', async () => {
@@ -142,6 +142,69 @@ describe('Anni Music REST API — Unit & Integration Suite', () => {
       expect(res.json().user.email).toBe('google.user@annimusic.app');
       expect(res.json().accessToken).toBeDefined();
     });
+
+    it('handles password reset flow (forgot-password -> reset-password)', async () => {
+      // 1. Request password reset
+      const forgotRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/forgot-password',
+        payload: {
+          email: 'demo@annimusic.app',
+        },
+      });
+      expect(forgotRes.statusCode).toBe(200);
+      const token = forgotRes.json().devToken;
+      expect(token).toBeDefined();
+
+      // 2. Submit new password
+      const resetRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/reset-password',
+        payload: {
+          email: 'demo@annimusic.app',
+          token,
+          newPassword: 'BrandNewPassword2026!',
+        },
+      });
+      expect(resetRes.statusCode).toBe(200);
+      expect(resetRes.json().success).toBe(true);
+
+      // 3. Login with new password
+      const newLoginRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: {
+          email: 'demo@annimusic.app',
+          password: 'BrandNewPassword2026!',
+        },
+      });
+      expect(newLoginRes.statusCode).toBe(200);
+      expect(newLoginRes.json().accessToken).toBeDefined();
+    });
+
+    it('returns user listening stats from GET /api/v1/auth/stats', async () => {
+      const loginRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: {
+          email: 'demo@annimusic.app',
+          password: 'AnniMusic2026!',
+        },
+      });
+      const token = loginRes.json().accessToken as string;
+
+      const statsRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/stats',
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(statsRes.statusCode).toBe(200);
+      const body = statsRes.json();
+      expect(body.stats).toBeDefined();
+      expect(typeof body.stats.playlistsCount).toBe('number');
+      expect(typeof body.stats.likedSongsCount).toBe('number');
+      expect(typeof body.stats.hoursListened).toBe('number');
+    });
   });
 
   describe('Playlists & Share Links (/api/v1/playlists)', () => {
@@ -218,11 +281,14 @@ describe('Anni Music REST API — Unit & Integration Suite', () => {
       const jamendo = providerRegistry.getProvider('jamendo')!;
       const ia = providerRegistry.getProvider('internet_archive')!;
       const yt = providerRegistry.getProvider('youtube')!;
+      const jiosaavn = providerRegistry.getProvider('jiosaavn')!;
 
       expect(jamendo.supportsLegalDownload).toBe(true);
       expect(ia.supportsLegalDownload).toBe(true);
       expect(yt.supportsLegalDownload).toBe(false);
       expect(yt.supportsDirectStream).toBe(false);
+      expect(jiosaavn.supportsDirectStream).toBe(true);
+      expect(jiosaavn.supportsLegalDownload).toBe(false);
 
       const ytDownload = await yt.resolveDownloadUrl('jfKfPfyJRdk');
       expect(ytDownload).toBeNull();
@@ -238,6 +304,18 @@ describe('Anni Music REST API — Unit & Integration Suite', () => {
       expect(data.total).toBeGreaterThan(0);
       expect(data.byProvider.jamendo).toBeDefined();
       expect(data.byProvider.internet_archive).toBeDefined();
+    });
+
+    it('searches Indian songs (Bollywood, Punjabi, etc.) via JioSaavn provider', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/search?q=Kesariya',
+      });
+      expect(res.statusCode).toBe(200);
+      const data = res.json();
+      expect(data.total).toBeGreaterThan(0);
+      expect(data.results.some((t: any) => t.genre === 'Bollywood' || t.genre === 'Hindi')).toBe(true);
+      expect(data.byProvider.jiosaavn).toBeDefined();
     });
 
     it('returns signed download URLs for Jamendo/InternetArchive and rejects YouTube downloads with 403', async () => {

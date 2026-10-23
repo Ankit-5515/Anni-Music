@@ -6,7 +6,8 @@ enum TrackSource {
   local,
   jamendo,
   internetArchive,
-  youtube;
+  youtube,
+  jiosaavn;
 
   String get value {
     switch (this) {
@@ -18,6 +19,8 @@ enum TrackSource {
         return 'internet_archive';
       case TrackSource.youtube:
         return 'youtube';
+      case TrackSource.jiosaavn:
+        return 'jiosaavn';
     }
   }
 
@@ -31,6 +34,8 @@ enum TrackSource {
         return 'Internet Archive';
       case TrackSource.youtube:
         return 'YouTube IFrame';
+      case TrackSource.jiosaavn:
+        return 'Indian Discovery';
     }
   }
 
@@ -47,6 +52,9 @@ enum TrackSource {
       case 'youtube':
       case 'yt':
         return TrackSource.youtube;
+      case 'jiosaavn':
+      case 'saavn':
+        return TrackSource.jiosaavn;
       default:
         return TrackSource.jamendo;
     }

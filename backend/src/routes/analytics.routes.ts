@@ -24,7 +24,7 @@ export async function analyticsAndHealthRoutes(app: FastifyInstance): Promise<vo
       dependencies: {
         database: 'connected',
         cache: cacheStatus.provider,
-        providers: ['jamendo', 'internet_archive', 'youtube'],
+        providers: ['jamendo', 'internet_archive', 'youtube', 'jiosaavn'],
       },
     });
   });

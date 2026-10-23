@@ -48,10 +48,38 @@ class MiniPlayerBar extends ConsumerWidget {
           // Swipe UP -> expand Now Playing
           HapticFeedback.lightImpact();
           onExpandNowPlaying();
-        } else if (velocity > 320) {
-          // Swipe DOWN -> dismiss/stop
+        } else if (velocity > 260) {
+          // Swipe DOWN -> dismiss/stop with Undo
           HapticFeedback.mediumImpact();
+          final Track stoppedTrack = track;
+          final List<Track> queue = List<Track>.from(playback.queue);
+          ref.read(playbackStateProvider.notifier).stop();
           ref.read(playbackStateProvider.notifier).clearQueue();
+
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AnniTheme.surface2,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              content: Text(
+                'Playback stopped • ${stoppedTrack.title}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(color: AnniTheme.textPrimary),
+              ),
+              action: SnackBarAction(
+                label: 'Undo',
+                textColor: AnniTheme.accentViolet,
+                onPressed: () {
+                  ref.read(playbackStateProvider.notifier).playTrack(
+                    stoppedTrack,
+                    queue: queue.isNotEmpty ? queue : <Track>[stoppedTrack],
+                  );
+                },
+              ),
+            ),
+          );
         }
       },
       onHorizontalDragEnd: (DragEndDetails details) {

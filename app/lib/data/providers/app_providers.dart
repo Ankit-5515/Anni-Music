@@ -172,6 +172,68 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> loginWithGoogle({
+    required String idToken,
+    String? email,
+    String? displayName,
+    String? avatarUrl,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final UserProfile user = await _repository.loginWithGoogle(
+        idToken: idToken,
+        email: email,
+        displayName: displayName,
+        avatarUrl: avatarUrl,
+      );
+      state = AuthState(user: user, isLoading: false);
+      unawaited(_repository.syncWithCloud());
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> forgotPassword(String email) async {
+    try {
+      return await _repository.forgotPassword(email);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      return await _repository.resetPassword(
+        email: email,
+        token: token,
+        newPassword: newPassword,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> updateProfile({
+    String? displayName,
+    String? avatarUrl,
+    String? bio,
+  }) async {
+    try {
+      final UserProfile updated = await _repository.updateProfile(
+        displayName: displayName,
+        avatarUrl: avatarUrl,
+        bio: bio,
+      );
+      state = state.copyWith(user: updated);
+    } catch (_) {}
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     state = AuthState(user: UserProfile.guest(), isLoading: false);
@@ -434,6 +496,16 @@ class PlaybackStateNotifier extends StateNotifier<AnniPlaybackState> {
     _syncFromHandler();
   }
 
+  Future<void> pause() async {
+    await _handler.pause();
+    _syncFromHandler();
+  }
+
+  Future<void> stop() async {
+    await _handler.stop();
+    _syncFromHandler();
+  }
+
   Future<void> togglePlayPause() async {
     if (_handler.currentQueue.isEmpty && state.currentTrack != null) {
       await _handler.playTrack(state.currentTrack!, contextQueue: state.queue);
@@ -476,6 +548,8 @@ class PlaybackStateNotifier extends StateNotifier<AnniPlaybackState> {
     await _handler.playNext(track);
     _syncFromHandler();
   }
+
+  Future<void> insertNext(Track track) => playNext(track);
 
   Future<void> addToQueue(Track track) async {
     await _handler.addToQueue(track);

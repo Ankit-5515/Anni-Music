@@ -22,6 +22,16 @@ const googleLoginSchema = z.object({
   avatarUrl: z.string().url().optional(),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  token: z.string().min(4),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+});
+
 const refreshSchema = z.object({
   refreshToken: z.string().min(16),
 });
@@ -206,6 +216,51 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         success: true,
         message: 'Account and all synced library data permanently deleted.',
       });
+    }
+  );
+
+  app.post('/forgot-password', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = forgotPasswordSchema.parse(request.body);
+    const user = dbStore.findUserByEmail(body.email);
+    if (!user) {
+      // Return 200 to prevent email enumeration
+      return reply.send({
+        success: true,
+        message: 'If an account exists, a 6-digit verification code has been dispatched.',
+      });
+    }
+    const token = dbStore.createPasswordResetToken(user.email);
+    return reply.send({
+      success: true,
+      message: 'Reset verification code dispatched.',
+      // In dev/test environments, return the code for verification
+      devToken: process.env.NODE_ENV !== 'production' ? token : undefined,
+    });
+  });
+
+  app.post('/reset-password', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = resetPasswordSchema.parse(request.body);
+    const newHash = await bcrypt.hash(body.newPassword, 10);
+    const success = dbStore.verifyAndResetPassword(body.email, body.token, newHash);
+    if (!success) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid or expired password reset token.',
+      });
+    }
+    return reply.send({
+      success: true,
+      message: 'Password reset successfully. You may now log in with your new password.',
+    });
+  });
+
+  app.get(
+    '/stats',
+    { preHandler: [app.authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const userId = (request.user as { sub: string }).sub;
+      const stats = dbStore.getUserListeningStats(userId);
+      return reply.send({ stats });
     }
   );
 }

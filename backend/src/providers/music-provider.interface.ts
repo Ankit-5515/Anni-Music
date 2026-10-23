@@ -1,6 +1,6 @@
 import { CatalogTrack } from '../data/catalog.js';
 
-export type ProviderSource = 'jamendo' | 'internet_archive' | 'youtube';
+export type ProviderSource = 'jamendo' | 'internet_archive' | 'youtube' | 'jiosaavn';
 
 export interface MusicSourceProvider {
   readonly sourceName: ProviderSource;

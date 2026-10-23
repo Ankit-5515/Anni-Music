@@ -100,10 +100,49 @@ void main() {
       expect(restored.formattedDuration, '03:34');
       expect(restored.effectiveWaveform.length, 48);
     });
+
+    test('supports Indian music tracks (JioSaavn) with correct source and tags', () {
+      final Track indianTrack = kSeededLegalCatalog.firstWhere(
+        (Track t) => t.source == TrackSource.jiosaavn,
+      );
+      expect(indianTrack.source, TrackSource.jiosaavn);
+      expect(indianTrack.source.displayName, 'Indian Discovery');
+      expect(indianTrack.source.value, 'jiosaavn');
+      expect(TrackSource.fromString('jiosaavn'), TrackSource.jiosaavn);
+      expect(indianTrack.title, contains('Kesariya'));
+    });
+
+    test('UserProfile serializes and deserializes Spotify-style stats', () {
+      const UserProfile profile = UserProfile(
+        id: 'usr_test_spotify_style',
+        email: 'listener@anni.music',
+        displayName: 'Aria Studio',
+        playlistsCount: 8,
+        likedSongsCount: 42,
+        hoursListened: 68.5,
+      );
+
+      final Map<String, dynamic> map = profile.toJson();
+      final UserProfile restored = UserProfile.fromJson(map);
+
+      expect(restored.playlistsCount, 8);
+      expect(restored.likedSongsCount, 42);
+      expect(restored.hoursListened, 68.5);
+    });
   });
 
   group('4. Equalizer Presets, Playback & Theme Token Tests', () {
     test('10-band Equalizer presets have 10 frequency bands within [-12, 12] dB', () {
+      expect(kEqualizerPresets.length, greaterThanOrEqualTo(18));
+      expect(kEqualizerPresets.containsKey('Flat'), isTrue);
+      expect(kEqualizerPresets.containsKey('Bass Boost'), isTrue);
+      expect(kEqualizerPresets.containsKey('Rock'), isTrue);
+      expect(kEqualizerPresets.containsKey('Pop'), isTrue);
+      expect(kEqualizerPresets.containsKey('Hip-Hop'), isTrue);
+      expect(kEqualizerPresets.containsKey('Electronic'), isTrue);
+      expect(kEqualizerPresets.containsKey('Classical'), isTrue);
+      expect(kEqualizerPresets.containsKey('Jazz'), isTrue);
+      expect(kEqualizerPresets.containsKey('Acoustic'), isTrue);
       expect(kEqualizerFrequenciesHz.length, 10);
       expect(kEqualizerBandLabels.length, 10);
       for (final MapEntry<String, List<double>> entry

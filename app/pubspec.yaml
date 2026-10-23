@@ -1,7 +1,7 @@
 name: anni_music
 description: "Anni Music — Your music. Your world. Hybrid Offline Local Library & Legal Streaming Super-App."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

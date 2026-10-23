@@ -251,6 +251,24 @@ class DioClient {
     }
   }
 
+  Future<Response<T>> patch<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.patch<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e, st) {
+      throw mapDioException(e, st);
+    }
+  }
+
   Future<Response<T>> delete<T>(
     String path, {
     Object? data,

@@ -163,6 +163,9 @@ class UserProfile extends Equatable {
     this.isGuest = false,
     this.settings = const UserSettingsEntity(),
     this.createdAt,
+    this.playlistsCount = 0,
+    this.likedSongsCount = 0,
+    this.hoursListened = 0.0,
   });
 
   final String id;
@@ -172,6 +175,9 @@ class UserProfile extends Equatable {
   final bool isGuest;
   final UserSettingsEntity settings;
   final DateTime? createdAt;
+  final int playlistsCount;
+  final int likedSongsCount;
+  final double hoursListened;
 
   factory UserProfile.guest() {
     return const UserProfile(
@@ -179,6 +185,9 @@ class UserProfile extends Equatable {
       email: 'guest@anni.music',
       displayName: 'Music Explorer',
       isGuest: true,
+      playlistsCount: 2,
+      likedSongsCount: 5,
+      hoursListened: 14.2,
     );
   }
 
@@ -190,6 +199,9 @@ class UserProfile extends Equatable {
     bool? isGuest,
     UserSettingsEntity? settings,
     DateTime? createdAt,
+    int? playlistsCount,
+    int? likedSongsCount,
+    double? hoursListened,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -199,6 +211,9 @@ class UserProfile extends Equatable {
       isGuest: isGuest ?? this.isGuest,
       settings: settings ?? this.settings,
       createdAt: createdAt ?? this.createdAt,
+      playlistsCount: playlistsCount ?? this.playlistsCount,
+      likedSongsCount: likedSongsCount ?? this.likedSongsCount,
+      hoursListened: hoursListened ?? this.hoursListened,
     );
   }
 
@@ -211,6 +226,9 @@ class UserProfile extends Equatable {
       'isGuest': isGuest,
       'settings': settings.toJson(),
       'createdAt': createdAt?.toIso8601String(),
+      'playlistsCount': playlistsCount,
+      'likedSongsCount': likedSongsCount,
+      'hoursListened': hoursListened,
     };
   }
 
@@ -228,6 +246,9 @@ class UserProfile extends Equatable {
           ? UserSettingsEntity.fromJson(rawSettings)
           : const UserSettingsEntity(),
       createdAt: DateTime.tryParse((json['createdAt'] as String?) ?? ''),
+      playlistsCount: (json['playlistsCount'] as num?)?.toInt() ?? 0,
+      likedSongsCount: (json['likedSongsCount'] as num?)?.toInt() ?? 0,
+      hoursListened: (json['hoursListened'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -240,5 +261,8 @@ class UserProfile extends Equatable {
         isGuest,
         settings,
         createdAt,
+        playlistsCount,
+        likedSongsCount,
+        hoursListened,
       ];
 }

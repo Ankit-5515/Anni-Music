@@ -3,6 +3,7 @@ import { dbStore } from '../db/store.js';
 import { cacheService } from '../services/cache.js';
 import { InternetArchiveProvider } from './internet-archive.provider.js';
 import { JamendoProvider } from './jamendo.provider.js';
+import { JioSaavnProvider } from './jiosaavn.provider.js';
 import { MusicSourceProvider, ProviderSource } from './music-provider.interface.js';
 import { YouTubeProvider } from './youtube.provider.js';
 
@@ -13,6 +14,7 @@ export class ProviderRegistry {
     this.register(new JamendoProvider());
     this.register(new InternetArchiveProvider());
     this.register(new YouTubeProvider());
+    this.register(new JioSaavnProvider());
   }
 
   register(provider: MusicSourceProvider): void {
@@ -40,7 +42,7 @@ export class ProviderRegistry {
     const activeSources: ProviderSource[] =
       sources && sources.length > 0
         ? sources
-        : ['jamendo', 'internet_archive', 'youtube'];
+        : ['jamendo', 'internet_archive', 'youtube', 'jiosaavn'];
 
     const cacheKey = `search:${query.toLowerCase().trim()}:${activeSources.sort().join(',')}:${limitPerProvider}`;
     const cached = await cacheService.get<{

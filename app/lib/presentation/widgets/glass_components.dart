@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/anni_theme.dart';
 import '../../domain/entities/track.dart';
+import 'track_action_menu.dart';
 
 /// Frosted glassmorphic container using [BackdropFilter] with sigma 28 blur
 /// and subtle `Colors.white.withOpacity(0.09)` border.
@@ -659,7 +660,7 @@ class AnniTrackTile extends StatelessWidget {
               ),
             if (trailing != null)
               trailing!
-            else if (onMoreTap != null)
+            else
               IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(
@@ -667,7 +668,7 @@ class AnniTrackTile extends StatelessWidget {
                   size: 18,
                   color: AnniTheme.textSecondary,
                 ),
-                onPressed: onMoreTap,
+                onPressed: onMoreTap ?? () => TrackActionMenu.show(context, track: track),
               ),
           ],
         ),

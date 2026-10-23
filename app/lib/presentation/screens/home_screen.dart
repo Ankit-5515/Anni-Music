@@ -21,6 +21,19 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isSyncing = false;
+  String _selectedCategory = 'All';
+
+  static const List<String> _categories = <String>[
+    'All',
+    'Bollywood',
+    'Hindi',
+    'Punjabi',
+    'Tamil',
+    'Telugu',
+    'Lo-Fi',
+    'Electronic',
+    'Classical',
+  ];
 
   String _getGreeting() {
     final int hour = DateTime.now().hour;
@@ -269,6 +282,90 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
+
+              // Category Filter Chips (Indian Genres & Lossless)
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 42,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (BuildContext context, int idx) {
+                      final String cat = _categories[idx];
+                      final bool isSelected = _selectedCategory == cat;
+                      return ChoiceChip(
+                        label: Text(
+                          cat,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected ? Colors.white : AnniTheme.textSecondary,
+                          ),
+                        ),
+                        selected: isSelected,
+                        selectedColor: AnniTheme.accentViolet,
+                        backgroundColor: AnniTheme.surface1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.08),
+                          ),
+                        ),
+                        onSelected: (bool selected) {
+                          if (selected) {
+                            HapticFeedback.selectionClick();
+                            setState(() => _selectedCategory = cat);
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // Filtered Category Section (if specific category selected)
+              if (_selectedCategory != 'All') ...<Widget>[
+                _buildSectionHeader(
+                  title: 'Top in $_selectedCategory',
+                  subtitle: 'Curated authorized tracks and regional hits',
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                      final List<Track> categoryTracks = kSeededLegalCatalog
+                          .where((Track t) =>
+                              t.genre.toLowerCase().contains(_selectedCategory.toLowerCase()))
+                          .toList();
+                      if (categoryTracks.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          child: Text(
+                            'No tracks found in $_selectedCategory',
+                            style: GoogleFonts.plusJakartaSans(color: AnniTheme.textSecondary),
+                          ),
+                        );
+                      }
+                      final Track track = categoryTracks[index];
+                      return AnniTrackTile(
+                        track: track,
+                        isPlaying: playback.currentTrack?.id == track.id && playback.isPlaying,
+                        onTap: () {
+                          ref
+                              .read(playbackStateProvider.notifier)
+                              .playTrack(track, queue: categoryTracks);
+                        },
+                      );
+                    },
+                    childCount: kSeededLegalCatalog
+                        .where((Track t) =>
+                            t.genre.toLowerCase().contains(_selectedCategory.toLowerCase()))
+                        .length
+                        .clamp(0, 10),
+                  ),
+                ),
+              ],
 
               // 3. Featured Hero Card with Gradient CTA
               SliverToBoxAdapter(

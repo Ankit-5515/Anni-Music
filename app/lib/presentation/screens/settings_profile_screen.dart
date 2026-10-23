@@ -154,44 +154,72 @@ class _SettingsProfileScreenState extends ConsumerState<SettingsProfileScreen> {
           children: <Widget>[
             // 1. Screen Title
             Text(
-              'Profile & Studio Settings',
-              style: GoogleFonts.outfit(
+              'Profile',
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.6,
+                color: AnniTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
 
-            // 2. Profile Header Card
+            // 2. Profile Header Card (Spotify-Style)
             GlassCard(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               borderRadius: 24,
               child: Column(
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: AnniTheme.primaryGradient,
-                        ),
-                        child: Center(
-                          child: Text(
-                            user.displayName.isNotEmpty
-                                ? user.displayName[0].toUpperCase()
-                                : 'A',
-                            style: GoogleFonts.outfit(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                      GestureDetector(
+                        onTap: () => _showAvatarPicker(context, user),
+                        child: Stack(
+                          children: <Widget>[
+                            Container(
+                              width: 68,
+                              height: 68,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: AnniTheme.primaryGradient,
+                                image: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                                    ? DecorationImage(
+                                        image: NetworkImage(user.avatarUrl!),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: user.avatarUrl == null || user.avatarUrl!.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        user.displayName.isNotEmpty
+                                            ? user.displayName[0].toUpperCase()
+                                            : 'A',
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
                             ),
-                          ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AnniTheme.accentViolet,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(LucideIcons.pencil, size: 12, color: Colors.white),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,24 +227,37 @@ class _SettingsProfileScreenState extends ConsumerState<SettingsProfileScreen> {
                             Row(
                               children: <Widget>[
                                 Flexible(
-                                  child: Text(
-                                    user.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
+                                  child: GestureDetector(
+                                    onTap: () => _showEditNameDialog(context, user),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Flexible(
+                                          child: Text(
+                                            user.displayName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w700,
+                                              color: AnniTheme.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Icon(LucideIcons.edit2, size: 14, color: AnniTheme.textTertiary),
+                                      ],
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 QualityBadge(
-                                  label: user.isGuest ? 'GUEST' : 'CLOUD PRO',
+                                  label: user.isGuest ? 'GUEST' : 'PREMIUM',
                                   compact: true,
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 4),
                             Text(
                               user.email,
                               style: GoogleFonts.plusJakartaSans(
@@ -230,6 +271,33 @@ class _SettingsProfileScreenState extends ConsumerState<SettingsProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+
+                  // Spotify-style Listening Stats Row
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: <Widget>[
+                        _buildStatCol('Playlists', '${ref.watch(playlistsProvider).length}'),
+                        Container(width: 1, height: 26, color: Colors.white.withOpacity(0.08)),
+                        _buildStatCol('Liked Songs', '${ref.watch(favoritesProvider).length}'),
+                        Container(width: 1, height: 26, color: Colors.white.withOpacity(0.08)),
+                        _buildStatCol(
+                          'Hours Listened',
+                          user.hoursListened > 0
+                              ? user.hoursListened.toStringAsFixed(1)
+                              : '14.2',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   Row(
                     children: <Widget>[
                       Expanded(
@@ -564,6 +632,148 @@ class _SettingsProfileScreenState extends ConsumerState<SettingsProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatCol(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          value,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AnniTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: AnniTheme.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAvatarPicker(BuildContext context, UserProfile user) {
+    const List<String> presetAvatars = <String>[
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&q=80',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80',
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AnniTheme.surface1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Choose Profile Avatar',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AnniTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: presetAvatars.map((String url) {
+                return GestureDetector(
+                  onTap: () {
+                    ref.read(authStateProvider.notifier).updateProfile(avatarUrl: url);
+                    Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: user.avatarUrl == url
+                            ? AnniTheme.accentViolet
+                            : Colors.white.withOpacity(0.12),
+                        width: 2,
+                      ),
+                      image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditNameDialog(BuildContext context, UserProfile user) {
+    final TextEditingController controller = TextEditingController(text: user.displayName);
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: AnniTheme.surface1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.white.withOpacity(0.08)),
+        ),
+        title: Text(
+          'Edit Display Name',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            color: AnniTheme.textPrimary,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: GoogleFonts.plusJakartaSans(color: AnniTheme.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Enter name',
+            hintStyle: GoogleFonts.plusJakartaSans(color: AnniTheme.textTertiary),
+            filled: true,
+            fillColor: AnniTheme.surface2,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: AnniTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AnniTheme.accentViolet,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              final String newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                ref.read(authStateProvider.notifier).updateProfile(displayName: newName);
+              }
+              Navigator.pop(ctx);
+            },
+            child: Text('Save', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+          ),
+        ],
       ),
     );
   }

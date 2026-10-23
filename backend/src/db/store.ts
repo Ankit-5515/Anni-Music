@@ -113,6 +113,7 @@ interface DatabaseSchema {
 export class AnniDataStore {
   private dbPath: string;
   private state: DatabaseSchema;
+  private resetTokens = new Map<string, { email: string; token: string; expiresAt: number }>();
 
   constructor() {
     const dataDir = path.resolve(process.cwd(), 'data');
@@ -395,6 +396,37 @@ export class AnniDataStore {
     this.state.userSettings = this.state.userSettings.filter((s) => s.userId !== userId);
     this.persist();
     return this.state.users.length < before;
+  }
+
+  createPasswordResetToken(email: string): string {
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+    this.resetTokens.set(token, { email: email.toLowerCase(), token, expiresAt });
+    return token;
+  }
+
+  verifyAndResetPassword(email: string, token: string, newPasswordHash: string): boolean {
+    const record = this.resetTokens.get(token);
+    if (!record || record.email !== email.toLowerCase() || record.expiresAt < Date.now()) {
+      return false;
+    }
+    const user = this.findUserByEmail(email);
+    if (!user) return false;
+    user.passwordHash = newPasswordHash;
+    user.updatedAt = new Date().toISOString();
+    this.resetTokens.delete(token);
+    this.persist();
+    return true;
+  }
+
+  getUserListeningStats(userId: string): { playlistsCount: number; likedSongsCount: number; hoursListened: number } {
+    const playlistsCount = this.state.playlists.filter((p) => p.userId === userId).length;
+    const likedSongsCount = this.state.favorites.filter((f) => f.userId === userId).length;
+    const totalPlaySeconds = this.state.playHistory
+      .filter((h) => h.userId === userId)
+      .reduce((acc, curr) => acc + (curr.listenedSeconds || 0), 0);
+    const hoursListened = Number((totalPlaySeconds / 3600).toFixed(1));
+    return { playlistsCount, likedSongsCount, hoursListened };
   }
 
   // Refresh Tokens

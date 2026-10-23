@@ -13,6 +13,8 @@ import '../../data/providers/app_providers.dart';
 import '../widgets/glass_components.dart';
 import '../widgets/tag_editor_sheet.dart';
 import 'equalizer_screen.dart';
+import 'queue_screen.dart';
+import '../widgets/track_action_menu.dart';
 
 /// Showpiece Full-Screen Now Playing Experience for Anni Music.
 /// Features:
@@ -279,132 +281,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
   }
 
   void _showQueueSheet() {
-    showAnniBottomSheet<void>(
-      context: context,
-      builder: (BuildContext ctx) {
-        return Consumer(
-          builder: (BuildContext context, WidgetRef ref, _) {
-            final AnniPlaybackState state = ref.watch(playbackStateProvider);
-            final PlaybackStateNotifier notifier =
-                ref.read(playbackStateProvider.notifier);
-
-            return SizedBox(
-              height: MediaQuery.of(context).size.height * 0.68,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-                    child: Row(
-                      children: <Widget>[
-                        const Icon(
-                          LucideIcons.listMusic,
-                          color: AnniTheme.accentMagenta,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                'Up Next Queue (${state.queue.length})',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                'Drag handle to reorder • Swipe left to remove',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  color: AnniTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            notifier.clearQueue();
-                            Navigator.of(ctx).pop();
-                          },
-                          child: const Text('Clear All'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ReorderableListView.builder(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      itemCount: state.queue.length,
-                      onReorder: notifier.reorderQueue,
-                      itemBuilder: (BuildContext context, int index) {
-                        final Track item = state.queue[index];
-                        final bool isCurrent = index == state.currentIndex;
-                        return Dismissible(
-                          key: ValueKey<String>('q_${item.id}_$index'),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 24),
-                            color: AnniTheme.error.withOpacity(0.24),
-                            child: const Icon(
-                              LucideIcons.trash2,
-                              color: AnniTheme.error,
-                            ),
-                          ),
-                          onDismissed: (_) => notifier.removeFromQueue(index),
-                          child: ListTile(
-                            leading: AnniArtworkWidget(
-                              artworkUrl: item.artworkUrl,
-                              dominantHex: item.dominantColor,
-                              size: 44,
-                              borderRadius: 10,
-                            ),
-                            title: Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                fontWeight: isCurrent
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: isCurrent
-                                    ? AnniTheme.accentMagenta
-                                    : AnniTheme.textPrimary,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${item.artist} • ${item.formattedDuration}',
-                              maxLines: 1,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                color: AnniTheme.textSecondary,
-                              ),
-                            ),
-                            trailing: ReorderableDragStartListener(
-                              index: index,
-                              child: const Icon(
-                                LucideIcons.gripVertical,
-                                size: 18,
-                                color: AnniTheme.textTertiary,
-                              ),
-                            ),
-                            onTap: () => notifier.skipToQueueItem(index),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+    QueueScreen.show(context);
   }
 
   @override
@@ -547,6 +424,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                             ),
                           ),
                         ),
+                      ),
+                      IconButton(
+                        tooltip: 'Track Options',
+                        onPressed: () => TrackActionMenu.show(context, track: track),
+                        icon: const Icon(LucideIcons.moreVertical, size: 20),
                       ),
                     ],
                   ),

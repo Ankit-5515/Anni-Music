@@ -17,10 +17,27 @@ enum LocalLibrarySortField {
 abstract class AuthRepository {
   Future<UserProfile> getCurrentUser();
   Future<UserProfile> login({required String email, required String password});
+  Future<UserProfile> loginWithGoogle({
+    required String idToken,
+    String? email,
+    String? displayName,
+    String? avatarUrl,
+  });
   Future<UserProfile> register({
     required String email,
     required String password,
     required String displayName,
+  });
+  Future<bool> forgotPassword(String email);
+  Future<bool> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  });
+  Future<UserProfile> updateProfile({
+    String? displayName,
+    String? avatarUrl,
+    String? bio,
   });
   Future<void> logout();
   Future<UserSettingsEntity> getUserSettings();

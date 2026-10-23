@@ -72,3 +72,13 @@
 - **Root Cause**: Kotlin Gradle Plugin 1.9+ validates JVM target parity between Java tasks and Kotlin tasks.
 - **Fix Applied**: Set `kotlin.jvm.target.validation.mode=ignore` in `gradle.properties`, configured `tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { kotlinOptions { jvmTarget = "17" } }`, and synced Java/Kotlin targets in CI patch step.
 - **Result**: WORKED. Release APK compiled and published to GitHub Releases (`v1.0.0`).
+
+---
+
+### Entry 8
+- **Timestamp**: 2026-10-23T08:24:00Z
+- **Component**: Flutter CI / DioClient & PlaybackStateNotifier
+- **Error**: `The method 'patch' isn't defined for the type 'DioClient'` and `The method 'insertNext' isn't defined for the type 'PlaybackStateNotifier'`
+- **Root Cause**: `DioClient` lacked a `patch` HTTP wrapper method, and `PlaybackStateNotifier` named the method `playNext`.
+- **Fix Applied**: Added `patch<T>` to `DioClient` in `app/lib/core/network/dio_client.dart` and implemented `insertNext` / `playNext` in `app/lib/data/providers/app_providers.dart` and `track_action_menu.dart`.
+- **Result**: WORKED. Tests compiling.

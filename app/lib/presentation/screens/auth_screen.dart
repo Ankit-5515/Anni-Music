@@ -66,14 +66,137 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Future<void> _handleGoogleSignIn() async {
     HapticFeedback.mediumImpact();
-    final bool success = await ref.read(authStateProvider.notifier).login(
-          email: 'aria.google@anni.music',
-          password: 'google_oauth_token_exchange',
+    final bool success = await ref.read(authStateProvider.notifier).loginWithGoogle(
+          idToken: 'google_token_${DateTime.now().millisecondsSinceEpoch}',
+          email: 'google.listener@anni.music',
+          displayName: 'Google Listener',
         );
     if (!mounted) return;
     if (success) {
       context.go('/home');
     }
+  }
+
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailCtrl = TextEditingController(text: _emailController.text.trim());
+    final TextEditingController codeCtrl = TextEditingController();
+    final TextEditingController newPassCtrl = TextEditingController();
+    int step = 0; // 0 = enter email, 1 = enter code & new pass
+
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setDialogState) {
+          return AlertDialog(
+            backgroundColor: AnniTheme.surface1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: Colors.white.withOpacity(0.08)),
+            ),
+            title: Text(
+              step == 0 ? 'Reset Password' : 'Enter Verification Code',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                color: AnniTheme.textPrimary,
+              ),
+            ),
+            content: step == 0
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Enter your account email to receive a 6-digit reset code.',
+                        style: GoogleFonts.plusJakartaSans(color: AnniTheme.textSecondary, fontSize: 13),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        style: GoogleFonts.plusJakartaSans(color: AnniTheme.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'email@anni.music',
+                          filled: true,
+                          fillColor: AnniTheme.surface2,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      TextField(
+                        controller: codeCtrl,
+                        keyboardType: TextInputType.number,
+                        style: GoogleFonts.plusJakartaSans(color: AnniTheme.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: '6-digit code',
+                          filled: true,
+                          fillColor: AnniTheme.surface2,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: newPassCtrl,
+                        obscureText: true,
+                        style: GoogleFonts.plusJakartaSans(color: AnniTheme.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'New password (8+ chars)',
+                          filled: true,
+                          fillColor: AnniTheme.surface2,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: AnniTheme.textSecondary)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AnniTheme.accentViolet,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () async {
+                  if (step == 0) {
+                    if (emailCtrl.text.contains('@')) {
+                      await ref.read(authStateProvider.notifier).forgotPassword(emailCtrl.text.trim());
+                      setDialogState(() => step = 1);
+                    }
+                  } else {
+                    final bool res = await ref.read(authStateProvider.notifier).resetPassword(
+                          email: emailCtrl.text.trim(),
+                          token: codeCtrl.text.trim(),
+                          newPassword: newPassCtrl.text,
+                        );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AnniTheme.surface2,
+                          content: Text(
+                            res ? 'Password updated! Please sign in.' : 'Reset failed. Try again.',
+                            style: GoogleFonts.plusJakartaSans(color: AnniTheme.textPrimary),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text(
+                  step == 0 ? 'Send Code' : 'Update Password',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _continueAsGuest() {
@@ -281,7 +404,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   return null;
                                 },
                               ),
-                              const SizedBox(height: 22),
+                              if (!_isSignUpMode) ...<Widget>[
+                                const SizedBox(height: 6),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    onPressed: _showForgotPasswordDialog,
+                                    child: Text(
+                                      'Forgot password?',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        color: AnniTheme.accentViolet,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 18),
 
                               // Primary Gradient Submit Button
                               SizedBox(

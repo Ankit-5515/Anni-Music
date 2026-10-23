@@ -66,9 +66,68 @@ export async function recommendationRoutes(app: FastifyInstance): Promise<void> 
           'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
         tracks: allTracks.filter((t) => ['Lo-Fi', 'Jazz', 'Indie Rock'].includes(t.genre)),
       },
+      {
+        id: 'mix_bollywood_romance',
+        title: 'Bollywood Romance & Acoustic',
+        subtitle: 'Arijit Singh, Pritam, Mithoon, Shreya Ghoshal',
+        gradientColors: ['#EC4899', '#F43F5E', '#FB923C'],
+        coverUrl:
+          'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=80',
+        tracks: allTracks.filter((t) => ['Bollywood', 'Hindi'].includes(t.genre)),
+      },
+      {
+        id: 'mix_punjabi_heat',
+        title: 'Punjabi Heat & Heavy 808s',
+        subtitle: 'Sidhu Moose Wala, Diljit Dosanjh, Intense',
+        gradientColors: ['#EF4444', '#F59E0B', '#8B5CF6'],
+        coverUrl:
+          'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&auto=format&fit=crop&q=80',
+        tracks: allTracks.filter((t) => t.genre === 'Punjabi'),
+      },
+      {
+        id: 'mix_south_cinema',
+        title: 'South Indian Cinema Top Hits',
+        subtitle: 'Anirudh Ravichander, Keeravani, Jonita Gandhi',
+        gradientColors: ['#06B6D4', '#3B82F6', '#10B981'],
+        coverUrl:
+          'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&auto=format&fit=crop&q=80',
+        tracks: allTracks.filter((t) => ['Tamil', 'Telugu', 'Malayalam'].includes(t.genre)),
+      },
     ];
 
     const topArtists = [
+      {
+        id: 'artist_arijit_singh',
+        name: 'Arijit Singh',
+        genre: 'Bollywood / Soul',
+        avatarUrl:
+          'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=80',
+        monthlyListeners: '38.4M',
+      },
+      {
+        id: 'artist_sidhu_moosewala',
+        name: 'Sidhu Moose Wala',
+        genre: 'Punjabi',
+        avatarUrl:
+          'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&auto=format&fit=crop&q=80',
+        monthlyListeners: '18.2M',
+      },
+      {
+        id: 'artist_anirudh',
+        name: 'Anirudh Ravichander',
+        genre: 'Tamil / Indian',
+        avatarUrl:
+          'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80',
+        monthlyListeners: '14.9M',
+      },
+      {
+        id: 'artist_diljit_dosanjh',
+        name: 'Diljit Dosanjh',
+        genre: 'Punjabi / Pop',
+        avatarUrl:
+          'https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=400&auto=format&fit=crop&q=80',
+        monthlyListeners: '22.1M',
+      },
       {
         id: 'artist_aether_nova',
         name: 'Aether & Nova',
